@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Simulador de Antenas — Radioamador</title>
+<style>
+:root{--bg:#f4f6f9;--cd:#fff;--tx:#18202c;--mu:#5b6877;--bd:#d6dce5;--ac:#0b62c4;--ok:#16813f;--wa:#b36b00;--bad:#c0392b;--sh:#e9edf3;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e131a;--cd:#161d27;--tx:#e4e9f0;--mu:#93a1b3;--bd:#2a3442;--ac:#5aa9ff;--ok:#4cc27a;--wa:#e8a23a;--bad:#ef6b5b;--sh:#1e2733;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e131a;--cd:#161d27;--tx:#e4e9f0;--mu:#93a1b3;--bd:#2a3442;--ac:#5aa9ff;--ok:#4cc27a;--wa:#e8a23a;--bad:#ef6b5b;--sh:#1e2733;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{padding:16px 16px 4px;max-width:1200px;margin:auto}h1{margin:0;font-size:22px}header p{margin:2px 0 0;color:var(--mu)}
+main{display:grid;grid-template-columns:minmax(260px,330px) minmax(0,1fr);gap:14px;padding:12px 16px 24px;max-width:1200px;margin:auto}
+@media(max-width:820px){main{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--cd);border:1px solid var(--bd);border-radius:10px;padding:12px 14px;margin-bottom:12px}
+h3{margin:0 0 8px;font-size:14px}
+label{display:block;font-size:12px;color:var(--mu);margin-bottom:8px}
+input,select{width:100%;box-sizing:border-box;margin-top:2px;padding:6px 8px;font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:6px}
+label.ck{display:flex;gap:6px;align-items:center;color:var(--tx)}label.ck input{width:auto;margin:0}
+.r2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mg{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:12px}
+.m{background:var(--cd);border:1px solid var(--bd);border-radius:10px;padding:8px 10px}.m span{display:block;font-size:11px;color:var(--mu)}.m b{font-size:18px}.m i{display:block;font-style:normal;font-size:11px;color:var(--mu)}
+.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+canvas{display:block;width:100%}
+table{width:100%;border-collapse:collapse;font-size:13px;display:block;overflow-x:auto}th,td{text-align:left;padding:5px 8px;border-bottom:1px solid var(--bd);white-space:nowrap}th{color:var(--mu);font-weight:600}
+td small{color:var(--mu)}ul{margin:0;padding-left:18px}li{margin-bottom:4px}
+.cap,.foot{font-size:12px;color:var(--mu)}.ok{color:var(--ok)}.wa{color:var(--wa)}.bad{color:var(--bad)}
+</style></head><body>
+<header><h1>Simulador de Antenas para Radioamador</h1><p>Dimensões de construção, impedância, SWR e diagramas de irradiação (modelo analítico simplificado)</p></header>
+<main>
+<section class="card" id="ctl"><h3>Parâmetros</h3>
+<label>Tipo de antena<select id="t">
+<option value="dip">Dipolo de meia onda (horizontal)</option>
+<option value="inv">Dipolo em V invertido</option>
+<option value="gp">Vertical ¼ λ / Ground Plane</option>
+<option value="jp">J-Pole (vertical)</option>
+<option value="yagi">Yagi-Uda (2 a 10 elementos)</option>
+<option value="quad">Quad cúbica (2 a 8 elementos)</option>
+<option value="efhw">End-Fed Half Wave (EFHW)</option>
+<option value="wind">Windom / OCFD (alimentação deslocada)</option></select></label>
+<label>Faixa<select id="b"></select></label>
+<div class="r2"><label>Frequência (MHz)<input id="f" type="number" step="0.001" value="14.175"></label>
+<label>Linha (Ω)<select id="z"><option>50</option><option>75</option></select></label></div>
+<div class="r2"><label>Altura (m)<input id="h" type="number" step="0.5" min="0.5" value="10"></label>
+<label>Solo<select id="g"><option>Pobre (seco/arenoso)</option><option selected>Médio</option><option>Bom (úmido)</option><option>Água salgada</option></select></label></div>
+<div class="r2"><label>Condutor Ø (mm)<input id="d" type="number" step="0.1" min="0.1" value="2"></label>
+<label>Fator k (vazio = auto)<input id="k" type="number" step="0.001" placeholder="auto"></label></div>
+<div class="r2"><label>Erro de corte (%)<input id="e" type="number" step="0.1" value="0"></label>
+<label class="ck"><input type="checkbox" id="ins">Fio isolado</label></div>
+<label class="ck"><input type="checkbox" id="cm" checked>Usar casamento recomendado</label>
+<div data-t="inv"><label>Ângulo entre as pernas (°)<input id="A" type="number" min="60" max="170" value="110"></label></div>
+<div data-t="gp"><div class="r2"><label>Nº de radiais<input id="nr" type="number" min="1" max="120" value="8"></label><label>Ângulo radiais (°)<input id="ra" type="number" min="90" max="150" value="135"></label></div>
+<label>Montagem<select id="mt"><option value="e">Elevado (radiais no ar)</option><option value="g">Sobre o solo</option></select></label></div>
+<div data-t="yagi quad"><label>Nº de elementos<input id="n" type="number" min="2" max="10" value="3"></label></div>
+<div data-t="efhw"><div class="r2"><label>Z na ponta (Ω)<input id="ze" type="number" value="3000"></label><label>Unun (razão Z)<select id="er"><option>36</option><option selected>49</option><option>64</option><option>81</option></select></label></div></div>
+<div data-t="wind"><div class="r2"><label>Alimentação (% do fio)<input id="wq" type="number" min="20" max="45" value="33"></label><label>Balun<select id="wr"><option value="0">Automático</option><option>2</option><option>4</option><option>6</option><option>9</option></select></label></div></div>
+<p class="cap">Altura = centro (dipolo), ápice (V invertido), base (vertical) ou boom (Yagi/Quad).</p>
+</section>
+<section>
+<div id="mt2" class="mg"></div>
+<div class="g2"><div class="card"><h3>Diagrama azimutal</h3><canvas id="pa"></canvas><p class="cap" id="pac"></p></div>
+<div class="card"><h3>Diagrama de elevação</h3><canvas id="pe"></canvas><p class="cap">Plano vertical na direção principal (frente à direita).</p></div></div>
+<div class="card"><h3>SWR × frequência</h3><canvas id="sw"></canvas><p class="cap" id="swc"></p></div>
+<div class="card"><h3>Dimensões para construção</h3><table id="dm"></table></div>
+<div class="card" id="hc"><h3>Harmônicas e uso multibanda</h3><table id="hm"></table></div>
+<div class="card"><h3>Notas de montagem e análise</h3><ul id="nt"></ul></div>
+<p class="foot">Modelo analítico simplificado (imagem no solo, distribuição senoidal de corrente, fórmulas empíricas de ganho). Serve para pré-dimensionar: valide com analisador de antenas/NanoVNA e, para precisão, com NEC (4nec2/EZNEC). Confirme os limites de faixa na regulamentação vigente da ANATEL.</p>
+</section></main>
+<script>
+const $=i=>document.getElementById(i),C=299.792458,PI=Math.PI,rad=x=>x*PI/180,db=x=>20*Math.log10(Math.max(x,1e-6));
+const fm=(x,n=2)=>(+x).toLocaleString('pt-BR',{minimumFractionDigits:n,maximumFractionDigits:n});
+const ln=m=>m<1?fm(m*100,1)+' cm':fm(m,2)+' m',lf=m=>ln(m)+' <small>('+fm(m*3.28084,2)+' ft)</small>';
+const BANDS=[["160 m",1.8,2.0],["80 m",3.5,3.9],["40 m",7.0,7.3],["30 m",10.1,10.15],["20 m",14.0,14.35],["17 m",18.068,18.168],["15 m",21.0,21.45],["12 m",24.89,24.99],["10 m",28.0,29.7],["6 m",50,54],["2 m",144,148],["70 cm",430,440],["23 cm",1240,1300]];
+const GAM=[.55,.75,.9,.98],SC=[.75,.5,.3,.05],SG=[1.8,1,.6,.2];
+const bandOf=f=>{const b=BANDS.find(b=>f>=b[1]&&f<=b[2]);return b?b[0]:null};
+$('b').innerHTML='<option value="">Personalizada</option>'+BANDS.map(b=>'<option>'+b[0]+'</option>').join('');
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function Ci(x){const n=Math.max(40,2*Math.ceil(x*4)),h=x/n;let s=0;for(let j=1;j<n;j++){const t=j*h;s+=(j%2?4:2)*(Math.cos(t)-1)/t}s+=(Math.cos(x)-1)/x;return .5772156649+Math.log(x)+s*h/3}
+function R12(d,lam){const K=2*PI/lam,L=lam/2,r=Math.hypot(d,L);return 30*(2*Ci(K*d)-Ci(K*(r+L))-Ci(K*(r-L)))}
+function Rdip(p,h){return Math.max(15,73.1-GAM[p.g]*R12(Math.max(2*h,.02*p.lam),p.lam))}
+function P(){const f=+$('f').value||14.2,lam=C/f,d=Math.max(+$('d').value||2,.1)/1000;let k=+$('k').value;
+let ka=Math.min(.985,Math.max(.9,.8776+.0115*Math.log(lam/d)));if($('ins').checked)ka*=.975;if(!(k>.8&&k<1.05))k=ka;
+return{f,lam,d,k,h:Math.max(+$('h').value||10,.5),zo:+$('z').value,g:$('g').selectedIndex,err:+$('e').value||0,cm:$('cm').checked,t:$('t').value}}
+function sim(p){
+const{lam,k,h,f,zo,t}=p,K=2*PI/lam,G=GAM[p.g],o={dims:[],notes:[],gf:2.15,q:1,fb:null,pol:'Horizontal',harm:null};
+const hor=(a,hh)=>Math.sqrt(Math.max(0,1+G*G-2*G*Math.cos(2*K*hh*Math.sin(a))));
+const dip=(ps,a)=>{const c=Math.cos(a)*Math.sin(ps),s=Math.sqrt(1-c*c);return s<1e-4?0:Math.abs(Math.cos(PI/2*c)/s)};
+const vt=a=>Math.cos(a)<.02?0:Math.cos(PI/2*Math.sin(a))/Math.cos(a);
+const D=(n,m,x)=>o.dims.push([n,m,x||'']);
+const harm=rf=>{const r=[];for(let n=1;n<=6;n++){const b=bandOf(f*n);if(n==1||b)r.push([n,f*n,b||'—',rf(n)])}return r};
+const sinH=(n,q)=>Math.abs(Math.sin(n*PI*q));
+if(t=='dip'){const L=lam/2*k,R=Rdip(p,h);
+D('Comprimento total',L,'Corte ~3% a mais e apare até o SWR mínimo na frequência');D('Cada perna',L/2);
+o.rin=o.rm=R;o.pat=(s,a)=>dip(s,a)*hor(a,h);o.harm=harm(n=>{const s=sinH(n,.5);return s<.05?1/0:R/(s*s)});
+o.notes.push('Use balun/choke de corrente 1:1 no ponto de alimentação. Em harmônicas pares o dipolo de centro não casa (corrente nula no centro).')}
+else if(t=='inv'){const A=+$('A').value||110,w=Math.min(1,Math.max(0,(A-60)/120)),L=lam/2*k*(1-.03*(1-w)),leg=L/2,s=.6*(1-w);
+const R=Rdip(p,h*.8)*(.45+.55*(A/180)**2);
+D('Comprimento total',L,'Cerca de 3% menor que o dipolo plano (ajuste fino com analisador)');D('Cada perna',leg);
+D('Altura das pontas',Math.max(0,h-leg*Math.cos(rad(A/2))),'Mantenha as pontas acima de 2,5 m (segurança)');D('Vão horizontal entre pontas',2*leg*Math.sin(rad(A/2)));
+o.rin=o.rm=R;o.gf=2.15-(1-w);o.pat=(ps,a)=>((1-s)*dip(ps,a)+s)*hor(a,h*.85);o.q=.9;
+o.harm=harm(n=>{const x=sinH(n,.5);return x<.05?1/0:R/(x*x)});
+o.notes.push('Ângulos menores que 90° reduzem a impedância e a resistência de irradiação; entre 100° e 120° fica próximo de 50 Ω. Menor ângulo = diagrama mais omnidirecional.')}
+else if(t=='gp'){const N=Math.max(1,Math.round(+$('nr').value||4)),an=+$('ra').value||135,el=$('mt').value=='e';
+const Rr=el?Math.min(60,Math.max(30,36+(an-90)*.311)):36,Rg=el?2:70/Math.pow(N,.8)*SG[p.g],R=Rr+Rg,c=SC[p.g]*(el?.5:1);
+D('Radiador vertical',lam/4*k,'¼ λ');D('Radiais ('+N+'×)',lam/4*(el?k:1),el?'Inclinação '+fm(an,0)+'° do eixo vertical':'Sobre/rente ao solo; podem ser mais longos, mesmo comprimento entre si');
+o.rin=o.rm=R;o.gf=5.15+10*Math.log10(Rr/R);o.pol='Vertical';o.pat=(ps,a)=>vt(a)*(1-c*Math.exp(-a*180/PI/8));
+o.notes.push(el?'Radiais elevados: 3 a 4 radiais ressonantes bastam; base ≥ 0,1 λ acima do solo reduz perdas.':'Sobre o solo, a perda de retorno depende do nº de radiais: 16 a 32 já reduz muito a perda; com poucos radiais o ganho cai.');
+if(h<.1*lam&&el)o.notes.push('Base a menos de 0,1 λ do solo: perdas maiores que o modelo considera.');
+o.notes.push('Impedância ≈ 36 Ω com radiais horizontais; ≈ 50 Ω com radiais a 135°. Use choke 1:1 para evitar corrente na malha do coaxial.')}
+else if(t=='jp'){o.pol='Vertical';
+D('Seção longa (total)',lam*.75*k,'Radiador + stub (¾ λ no total)');D('Seção curta (stub)',lam*.25*k,'Curto-circuitada na base');
+D('Espaçamento entre tubos (centro a centro)',lam*.0125);D('Ponto de alimentação (a partir da base)',lam*.022,'Ajuste fino: deslize o ponto de alimentação p/ SWR mínimo');
+o.rin=o.rm=zo;o.gf=2.65;o.q=.9;o.pat=(ps,a)=>vt(a);
+o.notes.push('Instale choke 1:1 (5 a 8 voltas de coax) logo abaixo do ponto de alimentação e afaste o mastro metálico em pelo menos ¼ λ, se possível.')}
+else if(t=='yagi'||t=='quad'){const Y=t=='yagi',N=Math.min(Y?10:8,Math.max(2,Math.round(+$('n').value||3))),s=k/.955;let pos=0;
+for(let i=0;i<N;i++){
+if(Y){const sp=[.2,.15,.2,.25];if(i)pos+=sp[Math.min(i-1,3)]*lam;const fr=i==0?.485:i==1?.461:Math.max(.41,.437-(i-2)*.004);
+D(i==0?'Refletor':i==1?'Radiador (driven)':'Diretor '+(i-1),fr*lam*s,'posição '+fm(pos,2)+' m da traseira')}
+else{if(i)pos+=(i==1?.2:.15)*lam;const per=(i==0?313.9:i==1?306.3:297.2*(1-.005*(i-2)))/f;
+D((i==0?'Refletor':i==1?'Radiador':'Diretor '+(i-1))+' (lado)',per/4,'perímetro '+ln(per)+' · posição '+fm(pos,2)+' m')}}
+D('Comprimento da boom',pos);
+o.gf=Y?6.5+10.6*Math.log10(N/2):7.1+8*Math.log10(N/2);o.fb=Y?Math.min(28,8+2.5*N):Math.min(25,12+2.5*(N-2));
+o.rin=Y?Math.max(12,28-1.7*N):Math.max(50,125-14*N);o.rm=p.cm?zo:o.rin;o.q=Y?2.2:1.2;
+const hp=Math.sqrt(41253/Math.pow(10,o.gf/10));
+o.pat=(ps,a)=>{const g=Math.acos(Math.max(-1,Math.min(1,Math.cos(a)*Math.cos(ps)))),gd=g*180/PI,pw=Math.max(Math.exp(-2.7726*(gd/hp)**2),Math.pow(10,-o.fb/10)*(2.2-1.2*gd/180));return Math.sqrt(pw)*hor(a,h)};
+if(Y){o.notes.push('Impedância no radiador ≈ '+fm(o.rin,0)+' Ω: use casamento gama, hairpin ou dipolo dobrado + balun; relação frente-costas e ganho dependem do ajuste fino dos diretores.');
+o.notes.push('Elementos passando por boom metálica: some ~0,5 a 1,5% ao comprimento (correção de boom) e confirme com analisador.')}
+else{const zq=Math.sqrt(zo*o.rin);o.notes.push('Impedância do radiador ≈ '+fm(o.rin,0)+' Ω. Casamento: seção ¼ λ de cabo de '+fm(zq,0)+' Ω ('+ln(lam/4*.66)+' em cabo de 75 Ω, VF 0,66) ou balun 2:1.');
+o.notes.push('Alimente no meio de um lado inferior para polarização horizontal (lateral = vertical). Espaçamento usado: 0,2 λ refletor–radiador e 0,15 λ entre os demais.')}}
+else if(t=='efhw'){const ze=+$('ze').value||3000,r=+$('er').value||49,L=lam/2*k;
+D('Fio irradiante',L,'Meia onda; corte ~3% a mais e apare');D('Contrapeso',lam*.05,'~0,05 λ (opcional se usar choke no coax)');
+o.rin=ze;o.rm=ze/r;o.gf=1.75;o.q=1.2;o.pat=(ps,a)=>dip(ps,a)*hor(a,h);o.harm=harm(()=>ze);
+o.notes.push('Transformador '+r+':1 leva ~'+fm(ze/r,0)+' Ω ao coaxial. Use núcleo FT240-43/-61 com potência compatível e choke no coaxial. Perda típica do transformador ~0,4 dB (já considerada no ganho).');
+o.notes.push('Z na ponta varia de 2000 a 4000 Ω com altura, solo e formato do fio (horizontal, inclinado, V invertido).')}
+else{const q=Math.min(.45,Math.max(.2,(+$('wq').value||33)/100)),L=lam/2*k,R0=Rdip(p,h),R=R0/Math.pow(Math.sin(PI*q),2);let r=+$('wr').value;
+if(!r)r=[2,4,6,9].reduce((a,b)=>Math.abs(Math.log(R/zo/b))<Math.abs(Math.log(R/zo/a))?b:a);
+D('Fio total',L);D('Perna curta',q*L,fm(q*100,0)+'% do total');D('Perna longa',(1-q)*L);
+o.rin=R;o.rm=R/r;o.gf=1.85;o.q=.8;o.pat=(ps,a)=>dip(ps,a)*hor(a,h);
+o.harm=harm(n=>{const x=sinH(n,q);return x<.05?1/0:R0/(x*x)});
+o.notes.push('Balun/unun '+r+':1 (corrente) no ponto de alimentação. Na prática a impedância varia de 100 a 300 Ω entre faixas; o modelo mostra o valor teórico na fundamental.');
+o.notes.push('Alimentação a 33% cai em nó de corrente na 3ª harmônica (sem uso). Os valores reais variam com a altura e o entorno.')}
+return o}
+function sz(cv,r){const w=cv.clientWidth,h=Math.round(w*r),d=window.devicePixelRatio||1;cv.width=w*d;cv.height=h*d;cv.style.height=h+'px';const x=cv.getContext('2d');x.setTransform(d,0,0,d,0,0);return[x,w,h]}
+function polar(cv,fn,el){const[x,W,H]=sz(cv,el?.6:1),R=el?Math.min(W/2-12,H-26):W/2-16,cx=W/2,cy=el?H-14:H/2,mu=css('--mu'),bd=css('--bd'),ac=css('--ac');
+x.font='10px system-ui,sans-serif';x.fillStyle=mu;x.strokeStyle=bd;x.lineWidth=1;
+[-3,-10,-20,-30].forEach(v=>{const r=R*(v+30)/30;x.beginPath();x.arc(cx,cy,r,el?PI:0,2*PI);x.stroke();x.fillText(v+' dB',cx+3,cy-r+10)});
+const ax=el?[0,30,60,90,120,150,180]:[0,30,60,90,120,150,180,210,240,270,300,330];
+ax.forEach(a=>{const t=rad(a);x.beginPath();x.moveTo(cx,cy);x.lineTo(el?cx+R*Math.cos(t):cx+R*Math.sin(t),el?cy-R*Math.sin(t):cy-R*Math.cos(t));x.stroke()});
+if(!el)[0,90,180,270].forEach(a=>x.fillText(a+'°',cx+(R+2)*Math.sin(rad(a))-(a==270?12:a==90?-2:6),cy-(R+2)*Math.cos(rad(a))+(a==0?-2:a==180?10:3)));
+else{x.fillText('frente',W-34,H-2);x.fillText('trás',2,H-2)}
+x.beginPath();const n=el?90:180;
+for(let i=0;i<=n;i++){const a=i*2,v=Math.max(-30,fn(a)),r=R*(v+30)/30,t=rad(a),px=el?cx+r*Math.cos(t):cx+r*Math.sin(t),py=el?cy-r*Math.sin(t):cy-r*Math.cos(t);i?x.lineTo(px,py):x.moveTo(px,py)}
+x.closePath();x.globalAlpha=.22;x.fillStyle=ac;x.fill();x.globalAlpha=1;x.strokeStyle=ac;x.lineWidth=2;x.stroke()}
+function chart(cv,swr,f,f0,s){const[x,W,H]=sz(cv,.42),l=36,r=8,t=8,b=22,f1=f*(1-s),f2=f*(1+s),X=v=>l+(v-f1)/(f2-f1)*(W-l-r),Y=v=>t+(1-(Math.min(v,5)-1)/4)*(H-t-b);
+const mu=css('--mu'),bd=css('--bd'),ac=css('--ac'),ok=css('--ok'),wa=css('--wa');x.font='10px system-ui,sans-serif';
+BANDS.forEach(B=>{if(B[2]>=f1&&B[1]<=f2){x.globalAlpha=.14;x.fillStyle=ok;x.fillRect(X(Math.max(B[1],f1)),t,X(Math.min(B[2],f2))-X(Math.max(B[1],f1)),H-t-b);x.globalAlpha=1}});
+x.strokeStyle=bd;x.fillStyle=mu;x.lineWidth=1;[1,1.5,2,3,5].forEach(v=>{x.beginPath();x.moveTo(l,Y(v));x.lineTo(W-r,Y(v));x.stroke();x.fillText(v+':1',2,Y(v)+3)});
+for(let i=0;i<=4;i++){const v=f1+(f2-f1)*i/4;x.fillText(fm(v,v<100?3:1),X(v)-16,H-8)}
+x.strokeStyle=wa;x.setLineDash([4,3]);x.beginPath();x.moveTo(l,Y(2));x.lineTo(W-r,Y(2));x.stroke();x.setLineDash([]);
+x.strokeStyle=mu;x.beginPath();x.moveTo(X(f),t);x.lineTo(X(f),H-b);x.stroke();
+x.strokeStyle=ac;x.lineWidth=2;x.beginPath();for(let i=0;i<=200;i++){const v=f1+(f2-f1)*i/200;i?x.lineTo(X(v),Y(swr(v))):x.moveTo(X(v),Y(swr(v)))}x.stroke()}
+function render(){const p=P(),o=sim(p),R=p.cm?o.rm:o.rin;
+document.querySelectorAll('[data-t]').forEach(e=>e.hidden=!e.dataset.t.split(' ').includes(p.t));
+const bf=bandOf(p.f);$('b').value=bf||'';
+let pk=0,ta=0;for(let a=0;a<=90;a++){const v=o.pat(0,rad(a));if(v>pk){pk=v;ta=a}}
+const gain=o.gf+db(pk),a0=rad(ta);
+let lo=ta,hi=ta;while(lo>0&&o.pat(0,rad(lo-1))>=.7071*pk)lo--;while(hi<90&&o.pat(0,rad(hi+1))>=.7071*pk)hi++;
+let az=360;for(let s=1;s<=180;s++)if(o.pat(rad(s),a0)<.7071*pk){az=2*s;break}
+const fb=db(o.pat(0,a0)/Math.max(o.pat(PI,a0),1e-4));
+const Qd=Math.min(60,Math.max(4,2.2*(Math.log(p.lam/p.d)-1.5)))*o.q,f0=p.f/(1+p.err/100);
+const swr=fq=>{const x=R*Qd*2*(fq-f0)/f0,g=Math.sqrt(((R-p.zo)**2+x*x)/((R+p.zo)**2+x*x));return Math.min(20,(1+g)/(1-g))};
+let bl=f0,bh=f0;const ok0=swr(f0)<=2;if(ok0){while(swr(bl)<=2&&bl>f0*.5)bl-=f0*.0005;while(swr(bh)<=2&&bh<f0*1.5)bh+=f0*.0005}
+const bw=ok0?bh-bl:0,sc=swr(p.f),cls=v=>v<=1.5?'ok':v<=2?'wa':'bad';
+const B=BANDS.find(b=>b[0]==bf),cover=B&&ok0?(bl<=B[1]&&bh>=B[2]):null;
+const mc=(l,v,s)=>'<div class="m"><span>'+l+'</span><b>'+v+'</b>'+(s?'<i>'+s+'</i>':'')+'</div>';
+$('mt2').innerHTML=mc('Ganho',fm(gain,1)+' dBi',fm(gain-2.15,1)+' dBd')+mc('Ângulo de saída',ta+'°',ta<20?'baixo (DX)':ta<45?'médio':'alto (regional/NVIS)')
++mc('Z de entrada',fm(o.rin,0)+' Ω',p.cm&&o.rm!=o.rin?'após casamento: '+fm(o.rm,1)+' Ω':'ponto de alimentação')
++'<div class="m"><span>SWR em '+fm(p.f,3)+' MHz</span><b class="'+cls(sc)+'">'+fm(sc,2)+':1</b><i>linha '+p.zo+' Ω</i></div>'
++mc('Banda SWR ≤ 2',bw?fm(bw*1000,0)+' kHz':'fora de 2:1',cover==null?(bw?fm(bw/p.f*100,1)+'%':''):(cover?'cobre a faixa inteira':'não cobre a faixa'))
++mc('Abertura −3 dB',(az>=360?'omni':fm(az,0)+'°')+' / '+fm(hi-lo,0)+'°','azimute / elevação')
++(o.fb?mc('Frente/costas',fm(fb,1)+' dB',''):'')+mc('Polarização',o.pol,'λ = '+fm(p.lam,2)+' m · k = '+fm(p.k,3));
+polar($('pa'),a=>db(o.pat(rad(a),a0)/pk),0);polar($('pe'),e=>{const al=e<=90?e:180-e;return db(o.pat(e<=90?0:PI,rad(al))/pk)},1);
+$('pac').textContent='Corte horizontal a '+ta+'° de elevação (0° = direção principal/broadside).';
+const sp=Math.min(.35,Math.max(.03,(bw/p.f)*1.8||.1));chart($('sw'),swr,p.f,f0,sp);
+$('swc').textContent='Faixas de radioamador em verde; linha tracejada = 2:1. Ressonância em '+fm(f0,3)+' MHz (erro de corte '+fm(p.err,1)+'%).';
+$('dm').innerHTML='<tr><th>Elemento</th><th>Comprimento</th><th>Observação</th></tr>'+o.dims.map(d=>'<tr><td>'+d[0]+'</td><td>'+lf(d[1])+'</td><td>'+d[2]+'</td></tr>').join('');
+$('hc').hidden=!o.harm||o.harm.length<2;
+if(o.harm)$('hm').innerHTML='<tr><th>Harmônica</th><th>Frequência</th><th>Faixa</th><th>Z estimada</th></tr>'+o.harm.map(r=>'<tr><td>'+r[0]+'×</td><td>'+fm(r[1],3)+' MHz</td><td>'+r[2]+'</td><td>'+(isFinite(r[3])?(r[3]>600?fm(r[3],0)+' Ω (exige unun)':fm(r[3],0)+' Ω'):'muito alta (evitar)')+'</td></tr>').join('');
+const n=o.notes.slice();
+if(o.pol=='Horizontal'&&p.h<.25*p.lam)n.push('Altura abaixo de 0,25 λ ('+ln(.25*p.lam)+'): predomina irradiação em alto ângulo (NVIS) e a impedância se afasta do valor de espaço livre.');
+if(o.pol=='Horizontal'&&ta>45&&p.h>=.25*p.lam)n.push('Ângulo de saída alto para a altura escolhida; para DX, suba a antena até ~0,5 λ ou mais.');
+if(sc>2)n.push('SWR acima de 2:1 na frequência-alvo: reveja corte, casamento ou altura.');
+n.push('Ajuste: corte o fio ~3% maior, meça com analisador e apare em passos de 1 a 2 cm até a ressonância na frequência desejada.');
+$('nt').innerHTML=n.map(s=>'<li>'+s+'</li>').join('')}
+$('b').addEventListener('change',()=>{const b=BANDS.find(b=>b[0]==$('b').value);if(b)$('f').value=+((b[1]+b[2])/2).toFixed(3)});
+document.querySelectorAll('input').forEach(e=>e.addEventListener('input',render));
+document.querySelectorAll('select').forEach(e=>e.addEventListener('change',render));
+addEventListener('resize',render);matchMedia('(prefers-color-scheme: dark)').addEventListener('change',render);
+render();
+</script></body></html>
